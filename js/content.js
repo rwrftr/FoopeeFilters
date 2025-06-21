@@ -3,7 +3,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
         (function () {
             console.log("[EXT] Content script loaded.");
 
-            // Step 1: Find the main listings
+            // Find the main listings
             const allDaySections = document.querySelectorAll("ul > li > ul");
             if (!allDaySections.length) {
                 console.warn("[EXT] No <ul><li><ul> listings found.");
@@ -51,7 +51,8 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     location = parts.pop().trim().toLowerCase(); // last part = location
                     //venue = parts.join(",").trim().toLowerCase(); // everything before = venue
 
-                    // check if location is misspelled
+                    // check if location is misspelled and group them to the correct location 
+                    //  these are just based on ones ive seen, so as I see more ill try to add them
                     switch(location){
                         case 'okland':
                             location = 'oakland'
