@@ -6,6 +6,7 @@ const boxText = document.getElementById('boxLabel');
 console.log('popup.js loaded');
 console.log(box);
 console.log(boxText);
+console
 
 // load stored state (default = true)
 chrome.storage.local.get({ extensionEnabled: true }, ({ extensionEnabled }) => {
@@ -22,9 +23,12 @@ box.addEventListener('change', function() {
   // store the state and reload the current tab
   chrome.storage.local.set({ extensionEnabled: enabled }, () => {
     // get current tab
-    chrome.tabs.query({ active:true, currentWindow:true }, tabs => {
-      // reload current tab
-      chrome.tabs.reload(tabs[0].id);
+    chrome.tabs.query({ url: "http://www.foopee.com/punk/the-list/*" }, tabs => {
+      if (tabs[0].id === undefined) {
+        console.log("No matching Foopee list tabs found.");
+        return;
+      }
+      tabs.forEach(tab => chrome.tabs.reload(tab.id));
     });
   });
   console.log(`Extension state changed: ${box.checked}`);

@@ -177,12 +177,10 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             filterContainer.appendChild(createFilterSection("Location", [...locations], "filter-location"));
             
             // Extract all numeric values from price strings
-            const numericPrices = [...prices]
-                .map(p => {
+            const numericPrices = [...prices].map(p => {
                     const match = p.match(/\d+(?:\.\d{2})?/);
                     return match ? parseFloat(match[0]) : null;
-                })
-                .filter(p => p !== null);
+                }).filter(p => p !== null);
 
             // grab min and max prices
             const minPrice = Math.min(...numericPrices);
