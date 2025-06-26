@@ -129,15 +129,12 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     else { return 'under 21'; }
                 })();
 
-                /* find price
-                
-                
-                if(fullText.includes('$')){
-
-                } else {
-                    const price = 'free or unspecified';
+                // mark sold out
+                let soldOut = false;
+                if (fullText.includes('sold out') || fullText.includes('soldout')) {
+                    soldOut = true;
+                    li.style.textDecoration = "line-through"; // visually mark as sold out
                 }
-                */
 
                 // Try to match prices like "$15", "$25/$30", "$10.50", etc.
                 const priceMatch = fullText.match(/\$\d+(?:\.\d{2})?(?:\/\$\d+(?:\.\d{2})?)?/);
@@ -147,7 +144,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 prices.add(price);
                 ageRanges.add(age);
 
-                listingData.push({ li, location, price, age });
+                listingData.push({ li, location, price, age, soldOut });
             });
 
             console.log("[EXT] Unique locations:", [...locations]);
@@ -218,7 +215,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
 
             // Create filter sections for locations
             filterContainer.appendChild(createFilterSection("Location", [...locations], "filter-location"));
-            
+// slider
             // Extract all numeric values from price strings
             const numericPrices = [...prices].map(p => {
                     const match = p.match(/\d+(?:\.\d{2})?/);
@@ -233,39 +230,59 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             // Create a slider div for price filtering
             const sliderWrapper = document.createElement("div");
             sliderWrapper.style.marginBottom = "1em";
+            sliderWrapper.style.display = "flex";
 
             // Create a label and add it to the slider wrapper
             const priceLabel = document.createElement("strong");
             priceLabel.textContent = `Max Price: $${maxPrice.toFixed(2)} `;
+            priceLabel.style.display = "inline-block";
+            priceLabel.style.width = "150px";
+            priceLabel.style.flexShrink = "0";
             sliderWrapper.appendChild(priceLabel);
 
             // Create the slider input element
             const slider = document.createElement("input");
             slider.type = "range";
-            slider.min = minPrice;
-            slider.max = maxPrice;
-            slider.step = 1;
+            slider.min = 0;
+            slider.max = maxPrice + 0.25; // because of the step size
+            slider.step = 0.25;
             slider.value = maxPrice;
-            slider.style.width = "300px";
-            slider.style.marginLeft = "10px";
+            slider.style.cssText = "width: 100%; marginLeft: 10px; marginRight: 10px"; // make it fill the remaining space
 
-            // 
-            const sliderValueDisplay = document.createElement("span");
-            sliderValueDisplay.textContent = `$${maxPrice}`;
             sliderWrapper.appendChild(slider);
-            sliderWrapper.appendChild(sliderValueDisplay);
-
+            
             filterContainer.appendChild(sliderWrapper);
+
+            
 
             // Update display on slider change
             slider.addEventListener("input", () => {
-                sliderValueDisplay.textContent = `$${slider.value}`;
                 currentMax = parseFloat(slider.value);
+                priceLabel.textContent = `Max Price: $${Math.round(slider.value)} `;
                 applyFilters();
             });
 
-            filterContainer.appendChild(createFilterSection("Age", [...ageRanges], "filter-age"));
+            const thirdRowContainer = document.createElement("div");
+            thirdRowContainer.style.display = "flex";
+            thirdRowContainer.style.justifyContent = "start";
+            thirdRowContainer.style.marginTop = "1em";
+            // Create filter sections for age ranges
+            thirdRowContainer.appendChild(createFilterSection("Age", [...ageRanges], "filter-age"));
 
+            // Create a checkbox for sold out listings
+            const soldOutCheckbox = document.createElement("input");
+            soldOutCheckbox.type = "checkbox";
+            soldOutCheckbox.id = "filter-sold-out";
+            soldOutCheckbox.checked = false; // default unchecked
+            soldOutCheckbox.style.marginLeft = "0.3em";
+            const soldOutLabel = document.createElement("strong");
+            soldOutLabel.textContent = "Show Sold Out: ";
+
+            thirdRowContainer.appendChild(soldOutLabel);
+            thirdRowContainer.appendChild(soldOutCheckbox);
+            filterContainer.appendChild(thirdRowContainer);
+
+// add the filter UI to the page
             h2.insertAdjacentElement("afterend", filterContainer);
             console.log("[EXT] Filter UI injected.");
 
@@ -281,7 +298,12 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 console.log("Price threshold: ≤", currentMax);
                 console.log("Ages:", selectedAges);
 
-                listingData.forEach(({ li, location, price, age }) => {
+                listingData.forEach(({ li, location, price, age, soldOut }) => {
+                    if(soldOut && !soldOutCheckbox.checked) {
+                        li.style.display = "none"; // hide sold out listings if checkbox is unchecked
+                        return;
+                    }
+                    
                     const matchLocation = selectedLocations.length === 0 || selectedLocations.includes(location);
                     const priceVal = parseFloat((price.match(/\d+(?:\.\d{2})?/) || [])[0]);
                     const matchPrice = isNaN(priceVal) || priceVal <= currentMax;
@@ -293,6 +315,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             }
 
             filterContainer.addEventListener("change", applyFilters);
+            applyFilters(); // initial filter application
         })();
     } else {
         console.log("[EXT] Extension is disabled.");
