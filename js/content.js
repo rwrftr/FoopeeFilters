@@ -1,3 +1,46 @@
+/* TODO:
+    - replace "maximum price" slider with a more user friendly deisgn
+    - add toggle to remove 'sold out' listings
+    - group recognized locations to their main location (need to add a toggle for this in popup.js/html)
+    - favorite listings on a page, and save them to local storage, toggle only show favorite listings
+    - add share listing button and share all favorites button
+    - favorite venues (save to storage), toggle show only favorite venues
+    - favorite artists (save to storage), toggle show only favorite artists
+    - recognize listing symbols:
+        *    recommendable shows			        a/a  all ages
+        $    will probably sell out			        @    pit warning
+        ^    under 21 must buy drink tickets		#    no ins/outs
+    
+    - add days of the week selector?
+    - add on hover band/venue effect to show/highlight other listings by the same band/venue
+
+*/
+
+
+function getPrice(fullText){
+    // example fullText:
+    //  Outside Lands, Golden Gate Park, S.F.</a> a/a $209 ($539 3 day ga) 11am #
+    //  O'Reilly's, S.F.</a> 21+ $10/$15 8pm
+    //  Kilowatt, S.F.</a> 21+ $$10-$20 7pm/8pm
+
+    // ideal output:
+    // idk
+    // $15
+
+    var price = "free or unspecified";
+    const pattern = /(\$\d+|\d+\s*-\s*\d+)/;
+    const priceMatch = [...fullText.matchAll(pattern)];
+
+    if (priceMatch.length > 0) {
+
+
+
+        price = priceMatch[0];
+    }
+
+    return price;
+}
+
 chrome.storage.local.get("extensionEnabled", (data) => {
     if (data.extensionEnabled) {
         (function () {
