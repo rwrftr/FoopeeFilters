@@ -1,6 +1,5 @@
 /* TODO:
     - replace "maximum price" slider with a more user friendly deisgn
-    - add toggle to remove 'sold out' listings
     - group recognized locations to their main location (need to add a toggle for this in popup.js/html)
     - favorite listings on a page, and save them to local storage, toggle only show favorite listings
     - add share listing button and share all favorites button
@@ -67,18 +66,28 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             const prices = new Set();
             const ageRanges = new Set();
             const listingData = [];
+            
+            const knownLoc = ['s.f', 'berkeley', 'oakland', 'memlo park', 'napa', 'santa cruz', 'san jose', 'san rafael', 'richmond', 'monte rio', 'petaluma', 'santa rosa', 'santa clara', 'san mateo', 'hayward', 'fremont'];
+            const locationCorrections = {
+                "okland": "oakland",
+                "memlo park": "menlo park",
+                "richmnd": "richmond",
+                "mounte rio": "monte rio"
+                // these are just based on ones ive seen, so as I see more ill try to add them
+            };
+            const locationCorrector = (location) => locationCorrections[location] || location;
 
             // extract info from each listing
             listings.forEach((li, idx) => {
                 const boldLinks = li.querySelectorAll("b > a");
                 const fullText = li.textContent.toLowerCase();
                 const venueText = boldLinks[0].textContent.trim();
-                const knownLoc = ['s.f', 'berkeley', 'oakland', 'memlo park', 'napa'];
-
-                // find location
+               
+                let soldOut = false;
                 let location = '';
                 let venue = '';
-                
+               
+                // find location
                 if (boldLinks.length === 0) {
                     // if theres no bolded info, skip it
                     console.log(`[EXT] [${idx}] Skipped listing — no <b><a> venue element.`);
@@ -95,24 +104,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     //venue = parts.join(",").trim().toLowerCase(); // everything before = venue
 
                     // check if location is misspelled and group them to the correct location 
-                    //  these are just based on ones ive seen, so as I see more ill try to add them
-                    switch(location){
-                        case 'okland':
-                            location = 'oakland'
-                            break;
-                        
-                        case 'memlo park':
-                            location = 'menlo park'
-                            break;  
-                        
-                        case 'richmnd':
-                            location = 'richmond'
-                            break;
-                        
-                        case 'mounte rio':
-                            location = 'monte rio'
-                            break;
-                    }
+                    locationCorrector(location);
 
                     // check if location is in a known location 
                     //  (for example, if the location is 'berkeley waterfront'
@@ -130,7 +122,6 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 })();
 
                 // mark sold out
-                let soldOut = false;
                 if (fullText.includes('sold out') || fullText.includes('soldout')) {
                     soldOut = true;
                     li.style.textDecoration = "line-through"; // visually mark as sold out
