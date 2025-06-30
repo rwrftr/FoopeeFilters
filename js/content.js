@@ -72,12 +72,13 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 "okland": "oakland",
                 "memlo park": "menlo park",
                 "richmnd": "richmond",
-                "mounte rio": "monte rio"
+                "mounte rio": "monte rio",
+                "19th avenue" : "s.f.",
                 // these are just based on ones ive seen, so as I see more ill try to add them
-            };
+        };
             const locationCorrector = (location) => locationCorrections[location] || location;
 
-            // extract info from each listing
+            // extract info from each listing ==============================================
             listings.forEach((li, idx) => {
                 const boldLinks = li.querySelectorAll("b > a");
                 const fullText = li.textContent.toLowerCase();
@@ -104,15 +105,12 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     //venue = parts.join(",").trim().toLowerCase(); // everything before = venue
 
                     // check if location is misspelled and group them to the correct location 
-                    locationCorrector(location);
+                    location = locationCorrector(location);
 
-                    // check if location is in a known location 
-                    //  (for example, if the location is 'berkeley waterfront'
-                    //  we want to just call it berkeley)
+                    // check if location is in a known location ( for example, if the location is 'berkeley waterfront' we want to just call it berkeley)
                     knownLoc.forEach(val => {
                         if(location.includes(val)){location = val}
                     })
-
                 } 
                 
                 // find age
@@ -121,7 +119,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     else { return 'under 21'; }
                 })();
 
-                // mark sold out
+                // mark if sold out
                 if (fullText.includes('sold out') || fullText.includes('soldout')) {
                     soldOut = true;
                     li.style.textDecoration = "line-through"; // visually mark as sold out
@@ -137,12 +135,13 @@ chrome.storage.local.get("extensionEnabled", (data) => {
 
                 listingData.push({ li, location, price, age, soldOut });
             });
+            // ======================================================================
 
             console.log("[EXT] Unique locations:", [...locations]);
             console.log("[EXT] Unique prices:", [...prices]);
             console.log("[EXT] Unique age ranges:", [...ageRanges]);
 
-            // Step 2: Create a new filter section and add it to the div
+            // function that creates a filter section with checkboxes
             function createFilterSection(title, options, className) {
                 // create div for the filter section
                 const container = document.createElement("div");
@@ -155,6 +154,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 // add the label to the fliter div
                 container.appendChild(label);
 
+                // create a checkbox for each option
                 options.forEach(opt => {
                     // check if option is empty or invalid
                     if (!opt || typeof opt !== "string") {
@@ -162,9 +162,10 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                         return;
                     }
 
-                    const id = `${className}-${opt.replace(/\W+/g, "-")}`;
+                    // replace non-word characters with hyphens
+                    const id = `${className}-${opt.replace(/\W+/g, "-")}`; 
 
-                    //
+                    // create a checkbox input element, and set its attributes
                     const checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
                     checkbox.value = opt;
@@ -172,13 +173,12 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     checkbox.className = className;
                     checkbox.style.marginRight = "0.3em";
 
-                    //
+                    // create a label for the checkbox
                     const optLabel = document.createElement("label");
                     optLabel.textContent = opt;
                     optLabel.setAttribute("for", id);
                     optLabel.style.marginRight = "1em";
 
-                    //
                     container.appendChild(checkbox);
                     container.appendChild(optLabel);
                 });
@@ -187,8 +187,6 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             }
 
             // check if <h2> exists to inject filters, if not log warning and exit
-
-
             if (!document.querySelector("h2")) {
                 console.warn("[EXT] Couldn't find <h2> to inject filters after.");
                 return;
@@ -206,7 +204,8 @@ chrome.storage.local.get("extensionEnabled", (data) => {
 
             // Create filter sections for locations
             filterContainer.appendChild(createFilterSection("Location", [...locations], "filter-location"));
-// slider
+
+            // slider
             // Extract all numeric values from price strings
             const numericPrices = [...prices].map(p => {
                     const match = p.match(/\d+(?:\.\d{2})?/);
