@@ -253,8 +253,6 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             
             filterContainer.appendChild(sliderWrapper);
 
-            
-
             // Update display on slider change
             slider.addEventListener("input", () => {
                 currentMax = parseFloat(slider.value);
@@ -262,24 +260,14 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 applyFilters();
             });
 
-            const thirdRowContainer = document.createElement("div");
+            // Create filter sections for age ranges and sold out listings
+            const thirdRowContainer = document.createElement("div");           
             thirdRowContainer.style.display = "flex";
             thirdRowContainer.style.justifyContent = "start";
             thirdRowContainer.style.marginTop = "1em";
-            // Create filter sections for age ranges
             thirdRowContainer.appendChild(createFilterSection("Age", [...ageRanges], "filter-age"));
-
-            // Create a checkbox for sold out listings
-            const soldOutCheckbox = document.createElement("input");
-            soldOutCheckbox.type = "checkbox";
-            soldOutCheckbox.id = "filter-sold-out";
-            soldOutCheckbox.checked = false; // default unchecked
-            soldOutCheckbox.style.marginLeft = "0.3em";
-            const soldOutLabel = document.createElement("strong");
-            soldOutLabel.textContent = "Show Sold Out: ";
-
-            thirdRowContainer.appendChild(soldOutLabel);
-            thirdRowContainer.appendChild(soldOutCheckbox);
+            thirdRowContainer.appendChild(createFilterSection("Show Sold out", [" "], "filter-sold-out"));
+            const soldOutCheckbox = thirdRowContainer.lastChild.childNodes[1];
             filterContainer.appendChild(thirdRowContainer);
 
 // add the filter UI to the page
