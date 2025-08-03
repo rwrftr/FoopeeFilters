@@ -15,6 +15,9 @@
 
 */
 
+var listingSymbols = { '*':'recommendable shows', '$':'will probably sell out', '^':'under 21 must buy drink tickets', '@':'pit warning', '#':'no ins/outs' };
+//symbols["*"] // returns 'recommendable shows'
+
 
 function getPrice(fullText){
     // example fullText:
@@ -40,8 +43,19 @@ function getPrice(fullText){
     return price;
 }
 
+function lastAlpha(s){
+    for(let i = s.length - 1; i >= 0; i--){
+        if(/^[a-zA-Z]$/.test(s[i])){
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+
 chrome.storage.local.get("extensionEnabled", (data) => {
-    if (data.extensionEnabled) {
+    if (data.extensionEnabled != false) {
         (function () {
             console.log("[EXT] Content script loaded.");
 
@@ -65,6 +79,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             const locations = new Set();
             const prices = new Set();
             const ageRanges = new Set();
+            const symbolsFound = new Set();
             const listingData = [];
             
             const knownLoc = ['s.f', 'berkeley', 'oakland', 'memlo park', 'napa', 'santa cruz', 'san jose', 'san rafael', 'richmond', 'monte rio', 'petaluma', 'santa rosa', 'santa clara', 'san mateo', 'hayward', 'fremont'];
@@ -87,6 +102,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 let soldOut = false;
                 let location = '';
                 let venue = '';
+                let symbols = [];
                
                 // find location
                 if (boldLinks.length === 0) {
@@ -129,11 +145,28 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 const priceMatch = fullText.match(/\$\d+(?:\.\d{2})?(?:\/\$\d+(?:\.\d{2})?)?/);
                 const price = priceMatch ? priceMatch[0] : "free or unspecified";
 
+                // find symbols
+                if (lastAlpha(fullText) !== -1) {
+                    const symbolSection = fullText.slice(lastAlpha(fullText) + 1).trim();
+                    for (const char of symbolSection) {
+                        if (listingSymbols[char] && !symbols.includes(char)) {
+                            symbols.push(char);
+                        }
+                    }
+                    symbolText = "";
+                    for (const sym of symbols) {
+                        symbolText += sym + ': ' + listingSymbols[sym] + ', ';
+                    }
+                    symbolText = symbolText.slice(0, -2); // remove trailing comma and space
+                }
+        
+
                 locations.add(location);
                 prices.add(price);
                 ageRanges.add(age);
+                
 
-                listingData.push({ li, location, price, age, soldOut });
+                listingData.push({ li, location, price, age, soldOut, symbolText});
             });
             // ======================================================================
 
@@ -212,8 +245,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     return match ? parseFloat(match[0]) : null;
                 }).filter(p => p !== null);
 
-            // grab min and max prices
-            const minPrice = Math.min(...numericPrices);
+            // grab max price
             const maxPrice = Math.max(...numericPrices);
             let currentMax = maxPrice;
 
@@ -230,17 +262,27 @@ chrome.storage.local.get("extensionEnabled", (data) => {
             priceLabel.style.flexShrink = "0";
             sliderWrapper.appendChild(priceLabel);
 
+            // create datalist for slider markers
+            const markers = document.createElement("datalist");
+            markers.id = 'price-markers';
+            for(let i = 5; i <= 25; i += 5){
+                const option = document.createElement('option');
+                option.value = i;
+                markers.appendChild(option);
+            }
+
             // Create the slider input element
             const slider = document.createElement("input");
             slider.type = "range";
             slider.min = 0;
             slider.max = maxPrice + 0.25; // because of the step size
+            slider.setAttribute('list', 'price-markers'); 
             slider.step = 0.25;
             slider.value = maxPrice;
             slider.style.cssText = "width: 100%; marginLeft: 10px; marginRight: 10px"; // make it fill the remaining space
 
             sliderWrapper.appendChild(slider);
-            
+            sliderWrapper.appendChild(markers);
             filterContainer.appendChild(sliderWrapper);
 
             // Update display on slider change
@@ -276,7 +318,7 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                 console.log("Price threshold: ≤", currentMax);
                 console.log("Ages:", selectedAges);
 
-                listingData.forEach(({ li, location, price, age, soldOut }) => {
+                listingData.forEach(({ li, location, price, age, soldOut, symbolText}) => {
                     if(soldOut && !soldOutCheckbox.checked) {
                         li.style.display = "none"; // hide sold out listings if checkbox is unchecked
                         return;
@@ -289,6 +331,8 @@ chrome.storage.local.get("extensionEnabled", (data) => {
                     const matchAge = selectedAges.length === 0 || selectedAges.includes(age);
 
                     li.style.display = (matchLocation && matchPrice && matchAge) ? "list-item" : "none";
+                    // on hover, show symbolText
+                    li.title = symbolText; // add symbols as a tooltip 
                 });
             }
 
